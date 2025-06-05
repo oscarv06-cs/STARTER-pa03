@@ -124,10 +124,9 @@ bool NeuralNetwork::contribute(double y, double p) {
     // find each incoming contribution, and contribute to the input layer's outgoing weights
     // If the node is already found, use its precomputed contribution from the contributions map
     // There is no need to visitContributeNode for the input layer since there is no bias to update.
-
-
-    flush();
-
+    for (int id : outputNodeIds){
+        contribute(id, y, p);
+    }
     return true;
 }
 // STUDENT TODO: IMPLEMENT
