@@ -1,4 +1,5 @@
 // includes
+#include <algorithm>
 #include "NeuralNetwork.hpp"
 using namespace std;
 
@@ -131,35 +132,37 @@ bool NeuralNetwork::contribute(double y, double p) {
 }
 // STUDENT TODO: IMPLEMENT
 double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
-    if (contributions.count(nodeId)){
-        return contributions[nodeId];
-    }
-    double incomingContribution = 0;
+    if (contributions.count(nodeId)) return contributions[nodeId];
+
     double outgoingContribution = 0;
     NodeInfo* currNode = nodes.at(nodeId);
 
-    // find each incoming contribution, and contribute to the nodes outgoing weights
-    // If the node is already found, use its precomputed contribution from the contributions map
-
-    if (adjacencyList.at(nodeId).empty()) {
-        // base case, we are at the end
+    // base case: if this node is one of the output nodes
+    if (find(outputNodeIds.begin(), outputNodeIds.end(), nodeId) != outputNodeIds.end()) {
         outgoingContribution = -1 * ((y - p) / (p * (1 - p)));
-    } 
+    } else {
+        // compute reverse adjacency list ONCE
+        static unordered_map<int, vector<Connection>> reverseAdjList;
+        if (reverseAdjList.empty()) {
+            for (size_t src = 0; src < adjacencyList.size(); ++src) {
+                for (auto& [dst, conn] : adjacencyList[src]) {
+                    reverseAdjList[dst].push_back(conn);
+                }
+            }
+        }
 
-    // Now contribute to yourself and prepare the outgoing contribution
-    else{
-        for (auto& pair : adjacencyList.at(nodeId)){
-            int neighborID = pair.first;
-            Connection& connection = pair.second;
-
-            incomingContribution = contribute(neighborID, y, p);
-            visitContributeNeighbor(connection, incomingContribution, outgoingContribution);
+        // accumulate contributions from children (nodes this one points to)
+        for (Connection& c : reverseAdjList[nodeId]) {
+            double incomingContribution = contribute(c.dest, y, p);
+            visitContributeNeighbor(c, incomingContribution, outgoingContribution);
         }
     }
+
     visitContributeNode(nodeId, outgoingContribution);
     contributions[nodeId] = outgoingContribution;
     return outgoingContribution;
 }
+
 // STUDENT TODO: IMPLEMENT
 bool NeuralNetwork::update() {
     if (batchSize == 0){
@@ -173,7 +176,10 @@ bool NeuralNetwork::update() {
     //update all connection weights
     for (unsigned int i = 0; i < adjacencyList.size(); i++){
         for (auto& [dest, conn] : adjacencyList[i]){
+            
             conn.weight -= learningRate * (conn.delta / batchSize);
+            conn.delta = 0;
+          
         }
     }
     return true;
