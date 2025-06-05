@@ -115,7 +115,11 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
     } 
 
     // Now contribute to yourself and prepare the outgoing contribution
-
+    else{
+        for (auto& pair : adjacencyList.at(nodeId)){
+            
+        }
+    }|
     return outgoingContribution;
 }
 // STUDENT TODO: IMPLEMENT
