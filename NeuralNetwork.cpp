@@ -126,7 +126,7 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
             visitContributeNeighbor(connection, incomingContribution, outgoingContribution);
         }
     }
-    visitContributeNeighbor(nodeId, outgoingContribution);
+    visitContributeNode(nodeId, outgoingContribution);
     contributions[nodeId] = outgoingContribution;
     return outgoingContribution;
 }
