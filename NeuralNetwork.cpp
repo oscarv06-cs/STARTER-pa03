@@ -117,9 +117,15 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
     // Now contribute to yourself and prepare the outgoing contribution
     else{
         for (auto& pair : adjacencyList.at(nodeId)){
-            
+            int neighborID = pair.first;
+            Connection& connection = pair.second;
+
+            incomingContribution = contribute(neighborID, y, p);
+            visitContributeNeighbor(connection, incomingContribution, outgoingContribution);
         }
     }|
+    visitContributeNeighbor(nodeId, outgoingContribution);
+    contribute[nodeId] = outgoingContribution;
     return outgoingContribution;
 }
 // STUDENT TODO: IMPLEMENT
