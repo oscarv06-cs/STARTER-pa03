@@ -91,36 +91,49 @@ std::ostream& operator<<(std::ostream& out, const Connection& c) {
 
 // STUDENT TODO: IMPLEMENT
 void Graph::updateNode(int id, NodeInfo n) {
-    if (true /* stub condition: change this to the correct condition*/) {
+    if ( id >= nodes.size()) {
         cout << "Attempting to update node with id: " << id << " but node does not exist" << endl;
         return;
     }
+    if (nodes[id]){
+        delete nodes[id]; // delete memory
+    }
 
-    return; //stub
+    nodes[id] = new NodeInfo(n);
+    //deep copy into the heap
 }
 
 // STUDENT TODO: IMPLEMENT
 NodeInfo* Graph::getNode(int id) const {
-    return nullptr; //stub
+    if (id >= nodes.size()){
+        return nullptr;
+    }
+    else{
+        return nodes[id];
+    }
 }
 
 // STUDENT TODO: IMPLEMENT
 void Graph::updateConnection(int v, int u, double w) {
-    if (true /* stub condition: change this to the correct condition*/) {
+    if (v >= nodes.size()) {
         cerr << "Attempting to update connection between " << v << " and " << u << " with weight " << w << " but " << v << " does not exist" << endl;
         exit(1);
     }
-    if (true /* stub condition: change this to the correct condition*/) {
+    if (u >= nodes.size()) {
         cerr << "Attempting to update connection between " << v << " and " << u << " with weight " << w << " but " << u << " does not exist" << endl;
         exit(1);
     }
+    adjacencyList[v][u] = Connection(v, u, w);
     
-    return; //stub
 }
 
 // STUDENT TODO: IMPLEMENT
 void Graph::clear() {
-    return; //stub
+    for (NodeInfo* node : nodes){
+        if (node){
+            delete node;
+        }
+    }
 }
 
 
