@@ -101,7 +101,9 @@ bool NeuralNetwork::contribute(double y, double p) {
 }
 // STUDENT TODO: IMPLEMENT
 double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
-
+    if (contributions.count(nodeId)){
+        return contributions[nodeId];
+    }
     double incomingContribution = 0;
     double outgoingContribution = 0;
     NodeInfo* currNode = nodes.at(nodeId);
@@ -123,9 +125,9 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
             incomingContribution = contribute(neighborID, y, p);
             visitContributeNeighbor(connection, incomingContribution, outgoingContribution);
         }
-    }|
+    }
     visitContributeNeighbor(nodeId, outgoingContribution);
-    contribute[nodeId] = outgoingContribution;
+    contributions[nodeId] = outgoingContribution;
     return outgoingContribution;
 }
 // STUDENT TODO: IMPLEMENT
