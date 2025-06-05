@@ -62,9 +62,40 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
     }
 
     // BFT implementation goes here
-
+    flush();
     // 1. Set up your queue initialization
+    for (unsigned int i = 0; i < inputNodeIds.size(); i++){
+        int id = inputNodeIds[i];
+        nodes[id]->postActivationValue = input[i];
+    }
     // 2. Start visiting nodes using the queue
+    queue<int> q;
+    unordered_map<int, int> map;
+    for (unsigned int i = 0; i < nodes.size(); i++){
+        map[i] = 0;
+    }
+    for (unsigned int j = 0; j < adjacencyList.size(); j++){
+        for(auto& [v, _] : adjacencyList[j]){
+            map[v]++;
+        }
+    }
+    for(int id : inputNodeIds){
+        q.push(id);
+    }
+
+    while (!q.empty()){
+        int curr = q.front();
+        q.pop();
+        for (auto& [neighborId, connection] : adjacencyList[curr]) {
+            visitPredictNeighbor(connection); 
+            map[neighborId]--;
+            if (map[neighborId] == 0) {
+                visitPredictNode(neighborId); 
+                q.push(neighborId);
+            }
+        }
+    }
+    
 
     vector<double> output;
     for (int i = 0; i < outputNodeIds.size(); i++) {
