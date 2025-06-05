@@ -33,17 +33,19 @@ void NeuralNetwork::setInputNodeIds(std::vector<int> inputNodeIds) {
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setOutputNodeIds(std::vector<int> outputNodeIds) {
-    //stub
+    this->outputNodeIds = outputNodeIds;
+    //assings a list of output node IDS    
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<int> NeuralNetwork::getInputNodeIds() const {
-    return vector<int>(); //stub
+    return inputNodeIds;
+
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<int> NeuralNetwork::getOutputNodeIds() const {
-    return vector<int>(); //stub
+    return  outputNodeIds;
 }
 
 // STUDENT TODO: IMPLEMENT
