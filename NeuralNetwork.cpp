@@ -154,25 +154,25 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
 
 // STUDENT TODO: IMPLEMENT
 bool NeuralNetwork::update() {
-    if (batchSize == 0){
+    if (batchSize == 0) {
         return false;
     }
-    // apply the derivative contributions
-    for (NodeInfo* node : nodes){
-        node->bias -= learningRate * (node->delta / batchSize);
-        node->delta = 0;
-    }
-    //update all connection weights
-    for (unsigned int i = 0; i < adjacencyList.size(); i++){
-        for (auto& [dest, conn] : adjacencyList[i]){
-            
-            conn.weight -= learningRate * (conn.delta / batchSize);
-            conn.delta = 0;
-          
+    // Update all biases in nodes
+    for (NodeInfo* node : nodes) {
+        if (node) {
+            node->bias -= learningRate * (node->delta / batchSize);
+            node->delta = 0; // Reset for next batch
         }
     }
+    // Update all connection weights
+    for (auto& connMap : adjacencyList) {
+        for (auto& [dest, conn] : connMap) {
+            conn.weight -= learningRate * (conn.delta / batchSize);
+            conn.delta = 0; // Reset for next batch
+        }
+    }
+    batchSize = 0; 
     return true;
-    
 }
 
 
