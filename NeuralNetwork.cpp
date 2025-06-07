@@ -1,57 +1,50 @@
 // includes
-#include <algorithm>
 #include "NeuralNetwork.hpp"
 using namespace std;
-
-
 
 // NeuralNetwork -----------------------------------------------------------------------------------------------------------------------------------
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::eval() {
+    //stub
     evaluating = true;
-    //Evalutation mode
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::train() {
+    //stub
     evaluating = false;
-    //Training mode
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setLearningRate(double lr) {
+    //stub
     learningRate = lr;
-    //Sets the learning rate as the parametere lr
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setInputNodeIds(std::vector<int> inputNodeIds) {
-    this->inputNodeIds = inputNodeIds;
-    //assigns a list of Node IDS to the nueral network's input layer
-
+    for(int i : inputNodeIds) this->inputNodeIds.push_back(i);
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setOutputNodeIds(std::vector<int> outputNodeIds) {
-    this->outputNodeIds = outputNodeIds;
-    //assings a list of output node IDS    
+    //stub
+    for(int o : outputNodeIds) this->outputNodeIds.push_back(o);
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<int> NeuralNetwork::getInputNodeIds() const {
     return inputNodeIds;
-
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<int> NeuralNetwork::getOutputNodeIds() const {
-    return  outputNodeIds;
+    return this->outputNodeIds; //stub
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<double> NeuralNetwork::predict(DataInstance instance) {
-
     vector<double> input = instance.x;
 
     // error checking : size mismatch
@@ -62,115 +55,139 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
         return vector<double>();
     }
 
-    // BFT implementation goes here
     flush();
-    // 1. Set up your queue initialization
-    for (unsigned int i = 0; i < inputNodeIds.size(); i++){
-        int id = inputNodeIds[i];
-        nodes[id]->postActivationValue = input[i];
-    }
-    // 2. Start visiting nodes using the queue
-    queue<int> q;
-    unordered_map<int, int> map;
-    for (unsigned int i = 0; i < nodes.size(); i++){
-        map[i] = 0;
-    }
-    for (unsigned int j = 0; j < adjacencyList.size(); j++){
-        for(auto& [v, _] : adjacencyList[j]){
-            map[v]++;
-        }
-    }
-    for(int id : inputNodeIds){
-        q.push(id);
-    }
 
-    while (!q.empty()){
-        int curr = q.front();
-        q.pop();
-        for (auto& [neighborId, connection] : adjacencyList[curr]) {
-            visitPredictNeighbor(connection); 
-            map[neighborId]--;
-            if (map[neighborId] == 0) {
-                visitPredictNode(neighborId); 
-                q.push(neighborId);
+    queue<int> qeueu;
+    vector<bool> visited(nodes.size(), false);
+
+    for(unsigned int i = 0; i < inputNodeIds.size(); i++){
+        qeueu.push(inputNodeIds[i]);
+        visited[inputNodeIds[i]] = true;
+        nodes[inputNodeIds[i]] -> preActivationValue = input[i];
+    }
+    while(!qeueu.empty()){
+        int top = qeueu.front();
+        qeueu.pop();
+        visitPredictNode(top);
+        for(auto it : adjacencyList[top]){
+            visitPredictNeighbor(it.second);
+            if(!visited[it.first]){
+                visited[it.first] = true;
+                qeueu.push(it.first);
             }
         }
     }
-    
-
-    vector<double> output;
+    vector<double> resultId;
     for (int i = 0; i < outputNodeIds.size(); i++) {
-        int dest = outputNodeIds.at(i);
-        NodeInfo* outputNode = nodes.at(dest);
-        output.push_back(outputNode->postActivationValue);
+        int outputNodeId = outputNodeIds.at(i);
+        NodeInfo* outputNode = nodes.at(outputNodeId);
+        resultId.push_back( outputNode->postActivationValue );
     }
-
-    if (evaluating) {
+    if (evaluating == true) {
         flush();
-    } else {
-        // increment batch size
+    } else if (evaluating != true) {
         batchSize++;
-        // accumulate derivatives. If in training mode, weights and biases get accumulated
-        contribute(instance.y, output.at(0));
+        contribute(instance.y, resultId.at(0));
     }
-    return output;
+    return resultId;
 }
+
 // STUDENT TODO: IMPLEMENT
-bool NeuralNetwork::contribute(double y, double p) {
-    contributions.clear();
-    // find each incoming contribution, and contribute to the input layer's outgoing weights
-    // If the node is already found, use its precomputed contribution from the contributions map
-    // There is no need to visitContributeNode for the input layer since there is no bias to update.
-    for (int id : outputNodeIds){
-        contribute(id, y, p);
+bool NeuralNetwork::contribute(double label, double prediction) {
+    double deltaIn = 0;
+    double deltaOut = 0;
+    NodeInfo* tempNode = nullptr;
+
+    for (int inputId : inputNodeIds) {
+        // Go through all nieghbors (outgoing edges)
+        for (auto& neighbor : adjacencyList[inputId]) {
+            int nextNodeId = neighbor.first;
+
+            // Reuse stored gradeints if available, otherwise compute it
+            if (contributions.find(nextNodeId) != contributions.end()) {
+                deltaIn = contributions[nextNodeId];
+            } else {
+                deltaIn = contribute(nextNodeId, label, prediction);
+                contributions[nextNodeId] = deltaIn;
+            }
+            // Apply contribution to the connection in the for loop
+            visitContributeNeighbor(neighbor.second, deltaIn, deltaOut);
+        }
     }
+    // Reset temporary values after applying contributions
+    flush();
     return true;
 }
+
 // STUDENT TODO: IMPLEMENT
-double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
-    if (contributions.count(nodeId)) return contributions[nodeId];
-
-    double outgoingContribution = 0;
-
-    if (find(outputNodeIds.begin(), outputNodeIds.end(), nodeId) != outputNodeIds.end()) {
-        outgoingContribution = -1 * ((y - p) / (p * (1 - p)));
-    } else {
-        for (auto& entry : adjacencyList[nodeId]) {
-            int dest = entry.first;
-            Connection& conn = entry.second;
-            double incomingContribution = contribute(dest, y, p);
-            visitContributeNeighbor(conn, incomingContribution, outgoingContribution);
+double NeuralNetwork::contribute(int vId, const double& target, const double& prediction) {
+    double gradIn = 0.0;
+    double gradOut = 0.0;
+    NodeInfo* current = nodes.at(vId);
+    // reuse cached gradient if already computed
+    if (contributions.count(vId)) {
+        return contributions[vId];
+    }
+    for (auto& edge : adjacencyList[vId]) {
+        int next = edge.first;
+        if (contributions.count(next)) {
+            gradIn = contributions[next];
+        } else {
+            gradIn = contribute(next, target, prediction);
+            contributions[next] = gradIn;
         }
+
+        visitContributeNeighbor(edge.second, gradIn, gradOut);
     }
-    
-    // Only apply contribution if NOT in input layer
-    if (find(inputNodeIds.begin(), inputNodeIds.end(), nodeId) == inputNodeIds.end()) {
-        visitContributeNode(nodeId, outgoingContribution);
+
+    // base case for output nodes
+    if (adjacencyList.at(vId).empty()) {
+        gradOut = -1 * ((target - prediction) / (prediction * (1 - prediction)));
+        // gradOut = prediction - target;
     }
-    contributions[nodeId] = outgoingContribution;
-    return outgoingContribution;
+
+    visitContributeNode(vId, gradOut);
+    // current->delta += gradOut;
+
+    return gradOut;
 }
 
+
 // STUDENT TODO: IMPLEMENT
+
 bool NeuralNetwork::update() {
-    if (batchSize == 0) {
-        return false;
+    queue<int> pending;
+    vector<bool> seen(nodes.size(), false);
+
+    // mark input nodes as visited and start from them
+    for (int inputId : inputNodeIds) {
+        pending.push(inputId);
+        seen[inputId] = true;
     }
-    // Update all biases in nodes
-    for (NodeInfo* node : nodes) {
-        if (node) {
-            node->bias -= learningRate * (node->delta / batchSize);
-            node->delta = 0; // Reset for next batch
+    while (!pending.empty()) {
+        int current = pending.front();
+        pending.pop();
+        // update the bias of the node
+        nodes[current]->bias -= learningRate * nodes[current]->delta;
+
+        // reset bias delta to 0
+        nodes[current]->delta = 0;
+
+        for (auto& conn : adjacencyList[current]) {
+            int neighbor = conn.first;
+            if (!seen[neighbor]) {
+                seen[neighbor] = true;
+                pending.push(neighbor);
+            }
+            // adjust weight with accumulated gradient
+            conn.second.weight -= learningRate * conn.second.delta;
+            conn.second.delta = 0;
+            // cout << "Updated weight from " << conn.second.source << " to " << conn.second.dest << endl;
         }
+        // double previousBias = nodes[current]->bias;
     }
-    // Update all connection weights
-    for (auto& connMap : adjacencyList) {
-        for (auto& [dest, conn] : connMap) {
-            conn.weight -= learningRate * (conn.delta / batchSize);
-            conn.delta = 0; // Reset for next batch
-        }
-    }
-    batchSize = 0; 
+
+    flush();
     return true;
 }
 
@@ -417,4 +434,3 @@ ostream& operator<<(ostream& out, const NeuralNetwork& nn) {
     out << static_cast<const Graph&>(nn) << endl;
     return out;
 }
-
