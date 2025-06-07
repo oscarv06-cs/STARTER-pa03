@@ -117,11 +117,7 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
 }
 // STUDENT TODO: IMPLEMENT
 bool NeuralNetwork::contribute(double y, double p) {
-
-    double incomingContribution = 0;
-    double outgoingContribution = 0;
-    NodeInfo* currNode = nullptr;
-
+    contributions.clear();
     // find each incoming contribution, and contribute to the input layer's outgoing weights
     // If the node is already found, use its precomputed contribution from the contributions map
     // There is no need to visitContributeNode for the input layer since there is no bias to update.
@@ -136,18 +132,21 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
 
     double outgoingContribution = 0;
 
-    // base case: if this node is one of the output nodes
     if (find(outputNodeIds.begin(), outputNodeIds.end(), nodeId) != outputNodeIds.end()) {
         outgoingContribution = -1 * ((y - p) / (p * (1 - p)));
     } else {
-        // For all outgoing connections from this node
-        for (auto& [dest, conn] : adjacencyList[nodeId]) {
+        for (auto& entry : adjacencyList[nodeId]) {
+            int dest = entry.first;
+            Connection& conn = entry.second;
             double incomingContribution = contribute(dest, y, p);
             visitContributeNeighbor(conn, incomingContribution, outgoingContribution);
         }
     }
-
-    visitContributeNode(nodeId, outgoingContribution);
+    
+    // Only apply contribution if NOT in input layer
+    if (find(inputNodeIds.begin(), inputNodeIds.end(), nodeId) == inputNodeIds.end()) {
+        visitContributeNode(nodeId, outgoingContribution);
+    }
     contributions[nodeId] = outgoingContribution;
     return outgoingContribution;
 }
